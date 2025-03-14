@@ -1,4 +1,4 @@
-# ENEL300
+# RC Car
 **Overview**
 
 This project is an RC car controlled by the AVR128DB28. The repository contains the firmware for the AVR128DB28 microcontroller as well as the PCB design files. The RC car is designed for remote operation and integrates embedded systems principles.
