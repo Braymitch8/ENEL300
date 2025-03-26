@@ -1,0 +1,48 @@
+#include <avr/io.h>
+#include <util/delay.h>
+
+uint16_t duty = 400; // 80% duty cycle for strong motor performance
+
+int main(void){
+    CCP = 0xD8; // Unlock protected I/O registers
+
+    // Set clock to 8 MHz
+    CLKCTRL.OSCHFCTRLA = 0x14;
+    while (CLKCTRL.MCLKSTATUS & 0b00000001);
+ 
+    // Configure PWM on PA0 (ENA pin)
+    TCA0.SINGLE.CTRLA = (0x01 << 3) | 0x01; // Divide by 16 and enable peripheral
+    TCA0.SINGLE.CTRLB = 0b00110011;  // Enable Single-slope PWM
+    TCA0.SINGLE.PER = 500 - 1; // Set PWM frequency to 1 kHz
+    TCA0.SINGLE.CMP0 = duty;  // Set duty cycle
+    
+    // PD3 and PD4 will be for input
+    // PD5 and PD6 will be for output
+    
+    // Set motor direction pins
+    PORTA.DIRSET = 0x01;         // PA0 (PWM output)
+    PORTD.DIRSET = 0b00100000;   // PD5, PD6 (motor direction outputs)
+    PORTD.DIRSET = 0b01000000;
+    
+    PORTD.DIRCLR = 0b00011000; // PD3 and PD4 for inputs
+    
+    //PORTD.OUT = 0b00100000;
+    //PORTD.OUT = 0b01000000;
+    
+//    while (1) {
+//        //PORTD.OUT &= ~0b01100000;
+//        
+//        // Go Forward:
+//        if(PORTD.IN & 0b00010000) {
+//            PORTD.OUT = 0b00100000;
+//        }
+//        // Go Reverse
+//        else if(PORTD.IN & 0b00001000) {
+//            PORTD.OUT = 0b01000000;
+//        }
+//        // Stay Still
+//        else {
+//            PORTD.OUT &= 0b10011111;  // Both PD5 and PD6 LOW (Stop)
+//        }
+//    }
+}
