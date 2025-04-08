@@ -1,0 +1,27 @@
+#define F_CPU 24000000UL  // System clock frequency
+
+#include <avr/io.h>
+
+#include <util/delay.h>
+ 
+void TCB0_init(void) {
+  // NOTE MUST SET LOW BYTE FIRST
+  TCB0.CTRLB = 0b00010111; // Create PWM
+  TCB0.CCMPL = 255; // Period is 255
+  TCB0.CCMPH = 128; // Duty cycle (50%)
+  TCB0.CTRLA = 0b00000011; // Enable signal
+}
+ 
+int main(void) {
+ 
+    TCB0_init();  // Initialize TCB0 for PWM
+ 
+    while (1) {
+
+        // Loop forever, PWM runs in hardware
+
+    }
+
+}
+
+ 
