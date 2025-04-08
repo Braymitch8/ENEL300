@@ -1,0 +1,53 @@
+/*
+ * File:   MOTOR.c
+ * Author: braydenmitchell
+ *
+ * Created on April 7, 2025, 8:42 PM
+ */
+#include <avr/io.h>
+#include <util/delay.h>
+
+uint16_t duty = 50; // 50% duty cycle for motor performance
+
+int main(void){
+    CCP = 0xD8; // Unlock protected I/O registers
+
+    // Set clock to 8 MHz
+    CLKCTRL.OSCHFCTRLA = 0x14;
+    while (CLKCTRL.MCLKSTATUS & 0b00000001);
+ 
+    // Configure PWM on PA0 and PA1 (ENA pins)
+    TCA0.SINGLE.CTRLA = (0x01 << 3) | 0x01; // Divide by 16 and enable peripheral
+    TCA0.SINGLE.CTRLB = 0b00110011;  // Enable Single-slope PWM on both PA0 and PA1
+    TCA0.SINGLE.PER = 500 - 1; // Set PWM frequency to 1 kHz
+    TCA0.SINGLE.CMP0 = duty;  // Set duty cycle for PA0
+    TCA0.SINGLE.CMP1 = duty;  // Set duty cycle for PA1
+
+    // Set PA0 and PA1 for PWM output
+    PORTA.DIRSET = 0x03; // Set PA0 and PA1 (both PWM outputs)
+
+    // Set PD3 and PD4 as input
+    PORTD.DIRCLR = 0b00011000; // PD3 and PD4 as inputs
+    
+    
+    
+    PORTA.DIRSET = 0b00100000; // set PA5 as output for servo
+    
+    while (1) {
+        if (PORTD.IN & (1 << 3)) { // If PD3 is high (forward)
+            // Enable PWM on PA0, disable on PA1
+            TCA0.SINGLE.CMP0 = duty;  // Set duty cycle for PA0
+            TCA0.SINGLE.CMP1 = 0;     // Turn off PA1 (no PWM)
+
+        } else if (PORTD.IN & (1 << 4)) { // If PD4 is high (reverse)
+            // Enable PWM on PA1, disable on PA0
+            TCA0.SINGLE.CMP0 = 0;     // Turn off PA0 (no PWM)
+            TCA0.SINGLE.CMP1 = duty;  // Set duty cycle for PA1
+
+        } else { // If neither PD3 nor PD4 is high
+            // Turn off both PA0 and PA1 (no PWM)
+            TCA0.SINGLE.CMP0 = 0;     // Turn off PA0
+            TCA0.SINGLE.CMP1 = 0;     // Turn off PA1
+        }
+    }
+}
