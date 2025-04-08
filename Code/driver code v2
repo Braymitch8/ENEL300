@@ -1,0 +1,106 @@
+#define F_CPU 24000000UL  // System clock frequency
+
+#include <avr/io.h>
+#include <util/delay.h>
+
+uint8_t duty = 40;  // 50% duty cycle for PWM (128 out of 255)
+
+void TCB0_init(void) { // PA2
+  // NOTE MUST SET LOW BYTE FIRST
+  TCB0.CTRLB = 0b00010111; // Create PWM
+  TCB0.CCMPL = 255;        // Period is 255
+  TCB0.CCMPH = duty;       // Set duty cycle (50%)
+  TCB0.CTRLA = 0b00000011; // Enable TCB0 for PWM on PA2
+}
+
+void TCB1_init(void) { // PA3
+  // NOTE MUST SET LOW BYTE FIRST
+  TCB1.CTRLB = 0b00010111; // Create PWM
+  TCB1.CCMPL = 255;        // Period is 255
+  TCB1.CCMPH = duty;       // Set duty cycle (50%)
+  TCB1.CTRLA = 0b00000011; // Enable TCB1 for PWM on PA3
+} 
+
+int main(void) {
+    TCB0_init();  // Initialize TCB0 for PWM on PA2
+    TCB1_init();  // Initialize TCB1 for PWM on PA3
+    
+    
+    // unlocking special registers
+    CCP = 0xd8;
+    
+    // setting the clock to 8MHz
+    CLKCTRL.OSCHFCTRLA = 0b00010100;
+    
+    // Makes sure clock isn't still changing
+    while( CLKCTRL.MCLKSTATUS & 0b00000001 ){
+        ;
+    }
+    // enabled. 
+    // sets clock frequency of timer/counter
+    // fTCA = f_clock per / 16 = 500kHz therefore every 2us clock counts up
+    TCA0.SINGLE.CTRLA = 0b00001001;
+    
+    // We will manually check the timer and reset the timer
+    // so set the period to its max value to avoid an automatic
+    // reset.
+    TCA0.SINGLE.PER = 0xffff;
+
+    // set timer to 1000
+    unsigned int timermax = 10000;
+    //440 RIGHT 45
+    //640 MIDDLE
+    //840 LEFT 45
+   
+    // Set PD3 and PD4 as input
+    PORTD.DIRCLR = 0b00011110; // PD1/PD2/PD3/PD4 as input
+    
+    PORTA.DIRSET = 0b00100000; // Set PA5 as output for servo
+
+    while (1) {
+        if (PORTD.IN & (1 << 3)) { // If PD3 is high (forward)
+            // Enable PWM on PA2, disable on PA3
+            TCB0.CCMPH = 50;   // Set duty cycle for PA2 (Forward)
+            TCB1.CCMPH = 0;      // Turn off PA3 (No PWM for reverse)
+        }
+        else if(PORTD.IN & (1 << 1)) {  // PD1 is pressed (high) TURN RIGHT and forward
+            // Enable PWM on PA2, disable on PA3
+            TCB0.CCMPH = duty;   // Set duty cycle for PA2 (Forward)
+            TCB1.CCMPH = 0;      // Turn off PA3 (No PWM for reverse)
+            
+            PORTA.OUT |= 0b00100000;
+            while( TCA0.SINGLE.CNT <= 440) ; 
+            PORTA.OUT &= 0b11011111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }
+        else if (PORTD.IN & (1 << 2)) {  // PD2 is pressed (high) TURN LEFT and forward
+            // Enable PWM on PA2, disable on PA3
+            TCB0.CCMPH = duty;   // Set duty cycle for PA2 (Forward)
+            TCB1.CCMPH = 0;      // Turn off PA3 (No PWM for reverse)
+            
+            PORTA.OUT |= 0b00100000;
+            while( TCA0.SINGLE.CNT <= 840) ; 
+            PORTA.OUT &= 0b11011111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }    
+        else if (PORTD.IN & (1 << 4)) { // If PD4 is high (reverse)
+            // Enable PWM on PA3, disable on PA2
+            TCB0.CCMPH = 0;      // Turn off PA2 (No PWM for forward)
+            TCB1.CCMPH = duty;   // Set duty cycle for PA3 (Reverse)
+
+        } 
+        else { // If neither PD3 nor PD4 is high (no forward/reverse)
+            // Turn off both PA2 and PA3 (no PWM)
+            TCB0.CCMPH = 0;      // Turn off PA2
+            TCB1.CCMPH = 0;      // Turn off PA3
+            
+            PORTA.OUT |= 0b00100000;
+            while( TCA0.SINGLE.CNT <= 640) ; 
+            PORTA.OUT &= 0b11011111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }
+    }
+}
