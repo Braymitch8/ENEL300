@@ -231,10 +231,12 @@ int main(void) {
   TCA0.SINGLE.CMP0 = duty;                               // 50% duty
     
   PORTA.DIRSET = 0x01;
-  PORTC.DIRSET = 0x01; // PC0 output
+  PORTC.DIRSET = 0x01; // PC0 output (Trig)
    
-  EVSYS.CHANNEL0 = 0x41; //PA1 input
-  EVSYS.USERTCB2CAPT = 0x01;
+  EVSYS.CHANNEL1 = 0x44; //PA4 input (Echo)
+
+
+  EVSYS.USERTCB2CAPT = 0x02; // Changes to channel 1
   TCB2.INTCTRL = 0x01;                                // capture interrupt enabled
   TCB2.EVCTRL = 0x01;                                 // enable input capture event
   TCB2.CTRLB = 0x04;                                  // input capture PW Measurement mode - T = value / 8000000
@@ -280,7 +282,7 @@ ISR(TCB2_INT_vect)
         ClearScreen();
         StringWrite("Distance: ");
         StringWrite(distanceStr);
-        StringWrite(" cm");
+        StringWrite(" cm   ");
         _delay_ms(500);
     }
 }
