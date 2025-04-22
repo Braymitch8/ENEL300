@@ -69,10 +69,10 @@ void I2CWrite(uint8_t address, uint8_t data) {
  *   5.2 to get an idea of some LCD commands and section 6.5.6 to see the
  *   timing requirements for the LCD lines.
  */
-// rs = 0 puts in command mode
-// rs = 0 puts in data mode
 void LCDWrite(uint8_t nibble, uint8_t rs, uint8_t rw, uint8_t ledOn){
   
+  // rs = 0 puts in command mode
+  // rs = 0 puts in data mode
   // Prepare the 8 bits that will be sent over I2C.  The wiring diagram on
   // page 2 of the LCD1602 tutorial shows how these bits are mapped to the 
   // LCD control lines.
@@ -93,7 +93,6 @@ void LCDWrite(uint8_t nibble, uint8_t rs, uint8_t rw, uint8_t ledOn){
 }
 
 // My Functions:
-
 // Requires a number in char type.
 // Sends that number to the LCD screen.
 void CharWrite(char c){
@@ -219,50 +218,12 @@ int main(void) {
   LCDWrite(0b0000,0,0,1);
   LCDWrite(0b0001,0,0,1);
   
-  
-  // Write 'W'.
-  //LCDWrite(0b0101,1,0,1); // Send the high byte
-  //LCDWrite(0b0111,1,0,1); // Send the low byte
-  
-  //LCDWrite(0b0000,0,0,1);
-  //LCDWrite(0b0110,0,0,1);
-  
-  // PRINTING "ALEX"
-  // In order to print a character, you must send the high byte of the ascii encoding, followed by the low byte.
-//  LCDWrite(0x04,1,0,1);
-//  LCDWrite(0x01,1,0,1);
-//  
-//  LCDWrite(0b0000,0,0,1);
-//  LCDWrite(0b0110,0,0,1);
-//  
-//  LCDWrite(0x04,1,0,1);
-//  LCDWrite(0x0c,1,0,1);
-//  
-//  
-//  LCDWrite(0b0000,0,0,1);
-//  LCDWrite(0b0110,0,0,1);
-//  
-//  LCDWrite(0x04,1,0,1);
-//  LCDWrite(0x05,1,0,1);
-//
-//  LCDWrite(0b0000,0,0,1);
-//  LCDWrite(0b0110,0,0,1);
-//  
-//  LCDWrite(0x05,1,0,1);
-//  LCDWrite(0x08,1,0,1);
-  
   CCP = 0xd8;                                         // unlocks special registers
   CLKCTRL.OSCHFCTRLA = 0x14;                          // setting the clock to 8MHz (8x10^6)
-   
   while( CLKCTRL.MCLKSTATUS & 0b00000001 ){           // Makes sure clock isn't still changing
-
+      ;
   }
-    
-  PORTMUX.TCAROUTEA = 0x02;
-    
-  // generating a PWM waveform using TCA0 and pin PD5, 
-  // frequency should be 100kHz (100,000Hz)
-    
+  PORTMUX.TCAROUTEA = 0x02; // generating a PWM waveform using TCA0 and pin PD5, frequency should be 100kHz (100,000Hz)
   TCA0.SINGLE.CTRLA = (0x01)<<3 | 0x01;               // 500kHz, 2uS/clock
   TCA0.SINGLE.CTRLB = 0x03;                           // single sloped PWM
   TCA0.SINGLE.CTRLB |= 0x01 << 4;
@@ -279,7 +240,6 @@ int main(void) {
   TCB2.CTRLB = 0x04;                                  // input capture PW Measurement mode - T = value / 8000000
   //TCB2.CTRLB = 0x03;                                  // input capture frequency Measurement mode - T = value / 8000000
   TCB2.CTRLA = 0x01;                                  // no clock div, TCB enabled
-    
   sei();                                              // enable global interrupt
   
   // Main loop
@@ -309,11 +269,11 @@ ISR(TCB2_INT_vect)
         }
         avg = sum / 10;
 
-        // Distance formula: (avg * 343) / (2 * 8000000)
+        // Distance formula: (average * 343) / (2 * 8000000)
         uint32_t distance = (avg * 34300) / 16000000;
 
         // Convert to string
-        char distanceStr[10];  // Enough for int characters
+        char distanceStr[10];  // Enough for integer characters
         NumToString(distance, distanceStr);
 
         // Display on LCD
