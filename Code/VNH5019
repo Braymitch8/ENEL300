@@ -1,0 +1,74 @@
+#define F_CPU 24000000UL  // System clock frequency
+
+#include <avr/io.h>
+#include <util/delay.h>
+
+uint8_t duty = 255;  // 50% duty cycle for PWM (128 out of 255)
+
+void TCB0_init(void) { // PA2
+  // NOTE MUST SET LOW BYTE FIRST
+  TCB0.CTRLB = 0b00010111; // Create PWM
+  TCB0.CCMPL = 255;        // Period is 255
+  TCB0.CCMPH = duty;       // Set duty cycle (50%)
+  TCB0.CTRLA = 0b00000011; // Enable TCB0 for PWM on PA2
+}
+
+int main(void) {
+    TCB0_init();  // Initialize TCB0 for PWM on PA7
+    
+    CCP = 0xd8; // unlocking special registers
+    CLKCTRL.OSCHFCTRLA = 0b00010100; // setting the clock to 8MHz
+    while( CLKCTRL.MCLKSTATUS & 0b00000001 ){ // Makes sure clock isn't still changing
+        ;
+    }
+    TCA0.SINGLE.CTRLA = 0b00001001; // enabled and clock frequency to 500kHz, every 2us clock counts up
+    TCA0.SINGLE.PER = 0xffff; // max clock value
+    unsigned int timermax = 10000; //440 RIGHT 45, 640 MIDDLE, 840 LEFT 45
+   
+
+    PORTD.DIRCLR = 0b00011110; // PD1/PD2/PD3/PD4 as input
+    PORTA.DIRSET = 0b00010000; // Set PA4 as output for servo
+    PORTA.DIRSET = 0b01100000;  // Set PA5 and PA6 as outputs
+
+    while (1) {
+        if (PORTD.IN & (1 << 3)) { // If PD3 is high (forward)
+            PORTA.OUTSET = 0b00100000;  // Set PA5 high
+            PORTA.OUTCLR = 0b01000000;  // Set PA6 low
+        }
+        else if(PORTD.IN & (1 << 1)) {  // PD1 is pressed (high) TURN RIGHT and forward
+            PORTA.OUTSET = 0b00100000;  // Set PA5 high
+            PORTA.OUTCLR = 0b01000000;  // Set PA6 low
+            
+            PORTA.OUT |= 0b00010000;
+            while( TCA0.SINGLE.CNT <= 440) ; 
+            PORTA.OUT &= 0b11101111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }
+        else if (PORTD.IN & (1 << 2)) {  // PD2 is pressed (high) TURN LEFT and forward
+            PORTA.OUTSET = 0b00100000;  // Set PA5 high
+            PORTA.OUTCLR = 0b01000000;  // Set PA6 low
+            
+            PORTA.OUT |= 0b00010000;
+            while( TCA0.SINGLE.CNT <= 840) ; 
+            PORTA.OUT &= 0b11101111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }    
+        else if (PORTD.IN & (1 << 4)) { // If PD4 is high (reverse)
+            PORTA.OUTCLR = 0b00100000;  // Set PA5 low
+            PORTA.OUTSET = 0b01000000;  // Set PA6 high
+
+        } 
+        else { // If neither PD3 nor PD4 is high (no forward/reverse)
+            PORTA.OUTCLR = 0b01100000; // PA5 and PA6 low
+            
+            PORTA.OUT |= 0b00010000;
+            while( TCA0.SINGLE.CNT <= 640) ; 
+            PORTA.OUT &= 0b11101111;
+            while( TCA0.SINGLE.CNT <= timermax) ; 
+            TCA0.SINGLE.CNT = 0;
+        }
+    }
+}
+
